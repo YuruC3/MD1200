@@ -1,12 +1,23 @@
-import serial, time
+import serial, time, os
 
 # CONST
-MD1200BAUD = 38400
-SERIALADAPTER = "/dev/ttyUSB0"
+if os.environ["MD1200BAUD"]:
+    MD1200BAUD = int(os.environ["MD1200BAUD"])
+else:
+    MD1200BAUD = 38400
+
+if os.environ["SERIALADAPTER"]:
+    SERIALADAPTER = os.environ["SERIALADAPTER"]
+else:
+    SERIALADAPTER = "/dev/ttyUSB0"
+
 GETTEMP = "_temp_rd"
 SETFANPRCNT = "set_speed"
-EPPYSLEEPY = 300  # 5 minutes
-#EPPYSLEEPY = 150  # 2,5 minutes
+
+if os.environ["EPPYSLEEPY"]:
+    EPPYSLEEPY = int(os.environ["EPPYSLEEPY"])
+else:
+    EPPYSLEEPY = 300  # 5 minutes
 
 # init
 MDserial = serial.Serial(
@@ -52,7 +63,6 @@ def getTemp(inpMDreturning):
                     MDict["avg"] = int(line[12:14])
                 case _:
                     continue
-
         return MDict
 
 
@@ -67,7 +77,7 @@ def setSpeed(inSpeeDict: dict):
     # Decide on fan speeds
     LOW_FAN_TRSHD = 21
     HIGH_FAN_TRSHD = 40
-    TEMP_FACTOR = 21
+    TEMP_FACTOR = 19
 
     # get backplanbe average 
     if inSpeeDict["bp1"] and inSpeeDict["bp2"]:

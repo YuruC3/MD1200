@@ -1,6 +1,6 @@
 [Unit]
-Description=Netflow to InfluxDB script
-After=multi-user.target network.target network-online.target
+Description=Adjust MD1200/MD1220 fan speeds
+After=multi-user.target
 # Place in /etc/systemd/system/
  
 [Service]
@@ -11,12 +11,12 @@ Restart=on-failure
 # EnvironmentFile=/etc/NetFlux/netflow.env
 # User=myuser
 WorkingDirectory=/dir/to/script/
-ExecStart=/dir/to/script'sVENV/venv/bin/python3 /dir/to/script/NetFlowCollect.py --serve-in-foreground
+ExecStart=/dir/to/script'sVENV/venv/bin/python3 /dir/to/script/main.py --serve-in-foreground
 #StandardInput=tty-force
 
 # Log file will be create if it doesn't exist
-StandardOutput=append:/var/log/NetFlowCollect.log
-StandardError=append:/var/log/NetFlowCollect.errlog
+StandardOutput=append:/var/log/MD1200FAN.py.log
+StandardError=append:/var/log/MD1200FAN.py.errlog
 
 # StandardOutput=syslog
 # StandardError=syslog
