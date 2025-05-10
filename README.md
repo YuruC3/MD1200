@@ -6,12 +6,16 @@ A set of scripts that automagically set fan speed on a MD1200 (probably MD1220 a
 
 ### Docker
 
-In .env file change 
+In .env file change:
 
 ```serial_adapter``` which is a serial port you're using. 
 On linux it is /dev/ttyUSBx and on windows it is COMx
 
 ```wait_time``` is the interval in which script is checking temperature. By default it is 300 seconds, which is 5 minutes.
+
+Then run with ```sudo docker-compose up -d```
+
+To see output run ```sudo docker container logs MD_Fan_Changer```
 
 ### Systemd 
 
@@ -29,7 +33,6 @@ After that you just need to change a few things
 ```SERIALADAPTER``` to a port you're using. 
 
 On linux it is /dev/ttyUSBx and on windows it is COMx
-
 
 ```EPPYSLEEPY``` is the interval in which script is checking temperature. By default it is 300 seconds, which is 5 minutes.
 
