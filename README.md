@@ -35,7 +35,7 @@ On linux it is /dev/ttyUSBx and on windows it is COMx
 
 ### Proxmox LXC
 
-You can also run it in LXC container on your Proxmox host. Just follow the [systemd](###Systemd) instructions.
+You can also run it in LXC container on your Proxmox host. Just follow the [systemd](###systemd) instructions.
 
 Here you will also need to add ```/dev/ttyUSBx``` to your LXC container. You do it under Resources -> Add -> Device Passthrough -> ```/dev/ttyUSBx``` as Device Path. 
 
