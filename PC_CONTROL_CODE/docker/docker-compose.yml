@@ -6,9 +6,9 @@ services:
     build: ./
     image: dm1200fanchanger:V1
     environment:
-      - baud_rate=${baud_rate:-38400} 
+      - baud_rate: ${baud_rate:-38400} 
       - serial_adapter=${serial_adapter:-"/dev/ttyUSB0"} 
-      - wait_time=${wait_time:-300}
+      - wait_time: ${wait_time:-300}
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     restart: unless-stopped
