@@ -6,7 +6,9 @@ const int MD1200BAUDS = 38400;  // From what I've read it is always 38400
 //const int EPYSLEEPY = 600000;  / 10 minutes
 const int EPYSLEEPY = 300000;  // 5 minutes
 //const int EPYSLEEPY = 150000;  // 2,5 minutes
-HardwareSerial Serial1(31, 30);
+HardwareSerial MDSerial(PA3, PA2);  // Rx Tx
+HardwareSerial DeBug(PA10, PA9);  // Rx Tx
+// HardwareSerial DeBug(USART1);  // use USART1 
 
 // declarations
 int getTemp();
@@ -14,19 +16,23 @@ int setFanTrsh(int);
 
 void setup() {
   // Setup connection to MD1200
-  // Serial1 because we're using RX/TX pins
-  Serial1.begin(MD1200BAUDS);
+  // MDSerial because we're using RX/TX pins
+  MDSerial.begin(MD1200BAUDS);
 
   // Just debug
-  Serial.begin(9600);
-  Serial.print("skibidi");
+  DeBug.begin(9600);
+  DeBug.println("skibidi");
+  delay(15000);
 }
 
 void loop() {
 
+  DeBug.println("Starting loop");
+
   int fanPercnt = getTemp();
   
   if (fanPercnt < 10) {
+    DeBug.println("Executing setFanTrsh");
     setFanTrsh(fanPercnt);
   }
 
@@ -35,11 +41,12 @@ void loop() {
   set fan speed every X minutes
   */
   delay(EPYSLEEPY);
-
+  DeBug.println("Ending loop");
 }
 
 // Get current temperature 
 int getTemp() {
+  DeBug.println("Getting Temperature");
 
   int bp1 = 0;
   int bp2 = 0;
@@ -49,13 +56,13 @@ int getTemp() {
   int simm1 = 0;
   String MD1200output;
   
-  Serial1.println("_temp_rd");
+  MDSerial.println("_temp_rd");
 
   // wait for MD1200 to answer
   delay(30);
-  
-  while (Serial1.available()) {
-    MD1200output = Serial1.readStringUntil('\n');
+  DeBug.println("getTemp logic start");  
+  while (MDSerial.available()) {
+    MD1200output = MDSerial.readStringUntil('\n');
 
     // Check backplane 1
     if (MD1200output.startsWith("BP_1")) {
@@ -126,6 +133,7 @@ int getTemp() {
 
     // Stop when prompt returns
     if (MD1200output.endsWith(">")) {
+      DeBug.println("getTemp got all temp info");
       break;
     }
   }
@@ -138,6 +146,7 @@ int getTemp() {
     int outPrcntg = 21;
 
     // a 
+    DeBug.println("getTemp choosing fan speed");
     switch (bpAvg) {
       case 23:
         outPrcntg = 21;
@@ -170,8 +179,11 @@ int getTemp() {
       
       default:
         return -1;
+        DeBug.println("getTemp error returning -1");
+
     
     }
+      DeBug.println("getTemp return " + String(outPrcntg));
 
     return outPrcntg;
 
@@ -195,9 +207,9 @@ int getTemp() {
 int setFanTrsh(int fanTrshInp) {
   String outputStatement = "set_speed " + String(fanTrshInp);
 
-  Serial.println("Sending " + outputStatement + " to MD1200");
+  DeBug.println("Sending " + outputStatement + " to MD1200");
 
-  if (Serial1.println(outputStatement)) {
+  if (MDSerial.println(outputStatement)) {
     return 1;
   }
   else {

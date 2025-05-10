@@ -2,6 +2,7 @@
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <HardwareSerial.h>
 
 // -------------------------------------------------------------
 // DHT PreConfiguration
@@ -22,6 +23,7 @@ const int MD1200BAUDS = 38400;  // From what I've read it is always 38400
 //const int EPYSLEEPY = 600000;  / 10 minutes
 const int EPYSLEEPY = 300000;  // 5 minutes
 //const int EPYSLEEPY = 150000;  // 2,5 minutes
+HardwareSerial MDSerial(PA3, PA2);  // Rx Tx
 
 // declarations
 int getTemp();
@@ -30,8 +32,8 @@ float dhtRead();
 
 void setup() {
   // Setup connection to MD1200
-  // Serial1 because we're using RX/TX pins
-  Serial1.begin(MD1200BAUDS);
+  // MDSerial because we're using RX/TX pins
+  MDSerial.begin(MD1200BAUDS);
 
   // Just debug
   Serial.begin(9600);
@@ -66,13 +68,13 @@ int getTemp() {
   int simm1 = 0;
   String MD1200output;
   
-  Serial1.println("_temp_rd");
+  MDSerial.println("_temp_rd");
 
   // wait for MD1200 to answer
   delay(30);
   
-  while (Serial1.available()) {
-    MD1200output = Serial1.readStringUntil('\n');
+  while (MDSerial.available()) {
+    MD1200output = MDSerial.readStringUntil('\n');
 
     // Check backplane 1
     if (MD1200output.startsWith("BP_1")) {
@@ -221,7 +223,7 @@ int setFanTrsh(int fanTrshInp) {
 
   Serial.println("Sending " + outputStatement + " to MD1200");
 
-  if (Serial1.println(outputStatement)) {
+  if (MDSerial.println(outputStatement)) {
     return 1;
   }
   else {
