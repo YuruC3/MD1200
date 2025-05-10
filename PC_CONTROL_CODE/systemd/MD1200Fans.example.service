@@ -1,0 +1,27 @@
+[Unit]
+Description=Netflow to InfluxDB script
+After=multi-user.target network.target network-online.target
+# Place in /etc/systemd/system/
+ 
+[Service]
+User=yuru
+Group=yuru
+Type=simple
+Restart=on-failure
+# EnvironmentFile=/etc/NetFlux/netflow.env
+# User=myuser
+WorkingDirectory=/etc/NetFlux/HQ/
+ExecStart=/etc/NetFlux/HQ/venv/bin/python3 /etc/NetFlux/HQ/HQnetflow.py --serve-in-foreground
+
+#StandardInput=tty-force
+
+# Log file will be create if it doesn't exist
+StandardOutput=append:/var/log/HQNetFlowInflux.log
+StandardError=append:/var/log/HQNetFlowInflux.errlog
+
+# StandardOutput=syslog
+# StandardError=syslog
+# SyslogIdentifier=NetFlowInflux
+ 
+[Install]
+WantedBy=multi-user.target
