@@ -17,7 +17,7 @@ SETFANPRCNT = "set_speed"
 if os.environ["EPPYSLEEPY"]:
     EPPYSLEEPY = int(os.environ["EPPYSLEEPY"])
 else:
-    EPPYSLEEPY = 300  # 5 minutes
+    EPPYSLEEPY = 1  # 1 second
 
 # init
 MDserial = serial.Serial(

@@ -5,7 +5,7 @@ MD1200BAUD = 38400
 SERIALADAPTER = "/dev/ttyUSB0"
 GETTEMP = "_temp_rd"
 SETFANPRCNT = "set_speed"
-EPPYSLEEPY = 300  # 5 minutes
+EPPYSLEEPY = 1  # 1 second
 #EPPYSLEEPY = 150  # 2,5 minutes
 
 # init
