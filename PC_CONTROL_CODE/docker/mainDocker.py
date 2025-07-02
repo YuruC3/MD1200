@@ -1,23 +1,25 @@
 import serial, time, os
 
-# CONST
-if os.environ["MD1200BAUD"]:
-    MD1200BAUD = int(os.environ["MD1200BAUD"])
-else:
-    MD1200BAUD = 38400
+# setting consts that can be customized
 
-if os.environ["SERIALADAPTER"]:
-    SERIALADAPTER = os.environ["SERIALADAPTER"]
-else:
-    SERIALADAPTER = "/dev/ttyUSB0"
+# baud rate. Prob not needed as 38400 is standard
+MD1200BAUD = int(os.getenv("MD1200BAUD", 38400))
+# used if you want to run it on multiple JBODs
+SERIALADAPTER = os.getenv("SERIALADAPTER", "/dev/ttyUSB0")
+# Factor that defines how aggressive the temperature curve is
+TEMP_FACTOR = int(os.getenv("TEMP_FACTOR", 19))
+# time between sending command to get temp and storing it. It's there to allow JBOD to answer
+EPPYSLEEPY = float(os.getenv("EPPYSLEEPY", 0.25))
 
-GETTEMP = "_temp_rd"
-SETFANPRCNT = "set_speed"
+LOW_FAN_TRSHD = int(os.getenv("LOW_FAN_TRSHD", 21))
+HIGH_FAN_TRSHD = int(os.getenv("HIGH_FAN_TRSHD", 40))
 
-if os.environ["EPPYSLEEPY"]:
-    EPPYSLEEPY = int(os.environ["EPPYSLEEPY"])
-else:
-    EPPYSLEEPY = 1  # 1 second
+GETTMPCMND = os.getenv("GETTMPCMND",  "_temp_rd")
+SETFANCMND = os.getenv("SETFANCMND", "set_speed")
+
+DEFOUTPRCNTG = int(os.getenv("DEFOUTPRCNTG", 24))
+
+
 
 # init
 MDserial = serial.Serial(
@@ -69,30 +71,23 @@ def getTemp(inpMDreturning):
 def setSpeed(inSpeeDict: dict):
 
     bpavrg = 0
-    # Some safe fan speedvalue
-    defoutprntg = 27
     # default
     outfanprcntg = 0
-
-    # Decide on fan speeds
-    LOW_FAN_TRSHD = 21
-    HIGH_FAN_TRSHD = 40
-    TEMP_FACTOR = 19
 
     # get backplanbe average 
     if inSpeeDict["bp1"] and inSpeeDict["bp2"]:
         bpavrg = (inSpeeDict["bp1"] + inSpeeDict["bp2"]) /2
-
         outfanprcntg = int((bpavrg / (HIGH_FAN_TRSHD - LOW_FAN_TRSHD)) * TEMP_FACTOR)
+        os.system(f"echo setting {outfanprcntg}%")
 
     # Set fan speed
     if outfanprcntg >= 20:
-        MDserial.write(("set_speed " + str(outfanprcntg) + " \n\r").encode())  
+        MDserial.write((f"{SETFANCMND} {str(outfanprcntg)} \n\r").encode())  
         print(f"setting {outfanprcntg}%")
         return 0
     else:
         # Set default value
-        MDserial.write(("set_speed " + str(defoutprntg) + " \n\r").encode())  
+        MDserial.write((f"{SETFANCMND} {str(DEFOUTPRCNTG)} \n\r").encode())  
         return 1
     
     # If something goes super wrong
@@ -112,8 +107,10 @@ def setSpeed(inSpeeDict: dict):
 
 while True:
     # https://stackoverflow.com/questions/52578122/not-able-to-send-the-enter-command-on-pyserial
-    MDserial.write("_temp_rd\n\r".encode())
-    time.sleep(1)
+
+    # get temperature data, wait for MD1200 to answer and store 
+    MDserial.write(f"{GETTMPCMND}\n\r".encode())
+    time.sleep(EPPYSLEEPY)
     MDreturning = MDserial.read_until(" >").decode()
 
     MDtempDict = getTemp(MDreturning)
@@ -121,12 +118,13 @@ while True:
 
     # good
     if setSpeedrcode == 0:
+        continue
         # print("Were mint")
-        time.sleep(EPPYSLEEPY)
+        # time.sleep(EPPYSLEEPY)
     # not good
     elif setSpeedrcode == 1:
         print("Ambigous temperature readings.\nFalling back to safe values.")
-        time.sleep(EPPYSLEEPY)
+        # time.sleep(EPPYSLEEPY)
     # very not good
     elif setSpeedrcode == -1:
         print("o nyo")

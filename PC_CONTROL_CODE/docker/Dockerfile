@@ -1,9 +1,9 @@
 FROM alpine:latest
 
 # https://docs.docker.com/reference/dockerfile/#environment-replacement
-ENV MD1200BAUD=38400
-ENV SERIALADAPTER=/dev/ttyUSB0
-ENV EPPYSLEEPY=300
+# ENV MD1200BAUD=38400
+# ENV SERIALADAPTER=/dev/ttyUSB0
+# ENV EPPYSLEEPY=300
 
 # VOLUME [""]
 
