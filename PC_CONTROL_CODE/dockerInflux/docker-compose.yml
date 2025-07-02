@@ -1,0 +1,19 @@
+---
+
+services:
+  mdfanchanger:
+    container_name: MD_Fan_Changer
+    image: yuruc3/md1200_fan_controll:v1.2.1
+    environment:
+      # - MD1200BAUD=
+      - SERIALADAPTER=/dev/ttyUSB0
+      - TEMP_FACTOR=17
+      - EPPYSLEEPY=0.5
+      - MDSERIALTIMEOUT=0.5
+      # - LOW_FAN_TRSHD=
+      # - HIGH_FAN_TRSHD=
+    env_file: "md1200.env"
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    restart: unless-stopped
+    privileged: false
