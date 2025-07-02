@@ -8,7 +8,8 @@ services:
       # - MD1200BAUD=
       - SERIALADAPTER=/dev/ttyUSB0
       - TEMP_FACTOR=17
-      # - EPPYSLEEPY=
+      - EPPYSLEEPY=0.25
+      - MDSERIALTIMEOUT=0.75
       # - LOW_FAN_TRSHD=
       # - HIGH_FAN_TRSHD=
     devices:

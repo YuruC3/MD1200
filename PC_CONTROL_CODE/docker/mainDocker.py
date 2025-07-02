@@ -7,9 +7,9 @@ MD1200BAUD = int(os.getenv("MD1200BAUD", 38400))
 # used if you want to run it on multiple JBODs
 SERIALADAPTER = os.getenv("SERIALADAPTER", "/dev/ttyUSB0")
 # Factor that defines how aggressive the temperature curve is
-TEMP_FACTOR = int(os.getenv("TEMP_FACTOR", 19))
+TEMP_FACTOR = int(os.getenv("TEMP_FACTOR", 16))
 # time between sending command to get temp and storing it. It's there to allow JBOD to answer
-EPPYSLEEPY = float(os.getenv("EPPYSLEEPY", 0.25))
+EPPYSLEEPY = float(os.getenv("EPPYSLEEPY", 1))
 
 LOW_FAN_TRSHD = int(os.getenv("LOW_FAN_TRSHD", 21))
 HIGH_FAN_TRSHD = int(os.getenv("HIGH_FAN_TRSHD", 40))
@@ -19,7 +19,11 @@ SETFANCMND = os.getenv("SETFANCMND", "set_speed")
 
 DEFOUTPRCNTG = int(os.getenv("DEFOUTPRCNTG", 24))
 
+MDSERIALTIMEOUT = float(os.getenv("MDSERIALTIMEOUT", 1))
 
+TEMPREADINTERVAL = int(os.getenv("TEMPREADINTERVAL", 15))
+
+GETTEMPTIMESLEEP = int(os.getenv("GETTEMPTIMESLEEP", 1))
 
 # init
 MDserial = serial.Serial(
@@ -28,18 +32,25 @@ MDserial = serial.Serial(
     parity=serial.PARITY_NONE,\
     stopbits=serial.STOPBITS_ONE,\
     bytesize=serial.EIGHTBITS,\
-    timeout=1)
+    timeout=MDSERIALTIMEOUT)
+
+lastTempReading = time.time() 
+MDtempDict = {}
 
 
+def getTemp():
 
-def getTemp(inpMDreturning):
+    MDserial.write(f"{GETTMPCMND}\n\r".encode())
+    time.sleep(GETTEMPTIMESLEEP)
+    MDreturning = MDserial.read_until(" >").decode(errors="ignore")
+
     MDict = {}
 
     # Sanitise output
-    MDsanit = inpMDreturning.splitlines()
+    MDsanit = MDreturning.splitlines()
 
     #if there is smth do smth
-    if inpMDreturning:
+    if MDreturning:
 
         for line in MDsanit:
             
@@ -61,10 +72,27 @@ def getTemp(inpMDreturning):
                     MDict["exp0"] = int(line[12:14])
                 case "EXP1":
                     MDict["exp1"] = int(line[12:14])
-                case "AVG":
-                    MDict["avg"] = int(line[12:14])
+                # case "AVG":
+                    # MDict["avg"] = int(line[12:14])
+                    # MDict["avg"] = int(line.strip().split("=")[1].strip().replace("c", ""))
+                    # try:
+                    #     # Extract number from e.g. '  AVG = 40c'
+                    #     temp = int(line.strip().split("=")[1].strip().replace("c", ""))
+                    #     MDict["avg"] = temp
+                    # except Exception as e:
+                    #     # print(f"[WARN] Failed to parse AVG line: {line} ({e})", flush=True)
+                    #     pass
                 case _:
-                    continue
+                    # try to catch the AVG line like: "  AVG = 40c"
+                    stripped = line.strip()
+                    if stripped.startswith("AVG"):
+                        try:
+                            temp = int(stripped.split("=")[1].strip().replace("c", ""))
+                            MDict["avg"] = temp
+                        except Exception as e:
+                            print(f"Could not parse AVG line: {line} ({e})", flush=True)
+                            continue                    
+                    # continue
         return MDict
 
 
@@ -75,15 +103,15 @@ def setSpeed(inSpeeDict: dict):
     outfanprcntg = 0
 
     # get backplanbe average 
-    if inSpeeDict["bp1"] and inSpeeDict["bp2"]:
+    if "bp1" in inSpeeDict and "bp2" in inSpeeDict:
         bpavrg = (inSpeeDict["bp1"] + inSpeeDict["bp2"]) /2
         outfanprcntg = int((bpavrg / (HIGH_FAN_TRSHD - LOW_FAN_TRSHD)) * TEMP_FACTOR)
-        os.system(f"echo setting {outfanprcntg}%")
+        # os.system(f"echo setting {outfanprcntg}%")
 
     # Set fan speed
     if outfanprcntg >= 20:
         MDserial.write((f"{SETFANCMND} {str(outfanprcntg)} \n\r").encode())  
-        print(f"setting {outfanprcntg}%")
+        print(f"setting {outfanprcntg}%", flush=True)
         return 0
     else:
         # Set default value
@@ -105,35 +133,57 @@ def setSpeed(inSpeeDict: dict):
 #     # MDserial.open()
 #     print("Port allready opened.\nTry closing it first")
 
-while True:
-    # https://stackoverflow.com/questions/52578122/not-able-to-send-the-enter-command-on-pyserial
+# Init
+MDtempDict = getTemp()
+lastTempReading = time.time()
+try:
 
-    # get temperature data, wait for MD1200 to answer and store 
-    MDserial.write(f"{GETTMPCMND}\n\r".encode())
-    time.sleep(EPPYSLEEPY)
-    MDreturning = MDserial.read_until(" >").decode()
+    while True:
+        # https://stackoverflow.com/questions/52578122/not-able-to-send-the-enter-command-on-pyserial
 
-    MDtempDict = getTemp(MDreturning)
-    setSpeedrcode = setSpeed(MDtempDict)
+        # get temperature data, wait for MD1200 to answer and store 
 
-    # good
-    if setSpeedrcode == 0:
-        continue
-        # print("Were mint")
-        # time.sleep(EPPYSLEEPY)
-    # not good
-    elif setSpeedrcode == 1:
-        print("Ambigous temperature readings.\nFalling back to safe values.")
-        # time.sleep(EPPYSLEEPY)
-    # very not good
-    elif setSpeedrcode == -1:
-        print("o nyo")
-        exit()
-    # very very very not good
-    else:
-        print("idk")
-        exit()
+        currentTime = time.time()
 
+        if currentTime - lastTempReading >= TEMPREADINTERVAL:
+            MDtempDict = getTemp()
+            lastTempReading = currentTime
+        
+        if MDtempDict:
+            setSpeedrcode = setSpeed(MDtempDict)
+
+            # good
+            if setSpeedrcode == 0:
+                pass
+                # print("Were mint", flush=True)
+                # time.sleep(EPPYSLEEPY)
+            # not good
+            elif setSpeedrcode == 1:
+                print("Ambigous temperature readings.\nFalling back to safe values.", flush=True)
+                # time.sleep(EPPYSLEEPY)
+            # very not good
+            elif setSpeedrcode == -1:
+                print("o nyo", flush=True)
+                exit()
+            # very very very not good
+            else:
+                print("idk", flush=True)
+                exit()
+        else:
+            print(f"temperature not yet pulled.\nFalling back do default fan speed", flush=True)
+            # os.system(f"echo temperature not yet pulled.\nFalling back do default fan speed")
+            MDserial.write((f"{SETFANCMND} {str(DEFOUTPRCNTG)} \n\r").encode()) 
+
+        time.sleep(EPPYSLEEPY) 
+
+except KeyboardInterrupt:
+    print("\n[INFO] KeyboardInterrupt detected. Exiting gracefully...")
+    MDserial.close()
+    exit()
+
+finally:
+    print("closing port")
+    MDserial.close()
 
 print("closing port")
 MDserial.close()
