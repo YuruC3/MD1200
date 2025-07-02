@@ -10,7 +10,7 @@ MD1200BAUD = int(os.getenv("MD1200BAUD", 38400))
 # used if you want to run it on multiple JBODs
 SERIALADAPTER = os.getenv("SERIALADAPTER", "/dev/ttyUSB0")
 # Factor that defines how aggressive the temperature curve is
-TEMP_FACTOR = int(os.getenv("TEMP_FACTOR", 16))
+TEMP_FACTOR = int(os.getenv("TEMP_FACTOR", 19))
 # time between sending command to get temp and storing it. It's there to allow JBOD to answer
 EPPYSLEEPY = float(os.getenv("EPPYSLEEPY", 1))
 
@@ -59,10 +59,11 @@ MDict = {}
 fluxSending = False
 currentTime = 0
 lastTempReading = 0
+inflxdb_LeData = []
 # Initialize InfluxDB client and influxdb API
 # ---------------------UNCOMMENT-----------------------
-# inflxdb_client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
-# write_api = inflxdb_client.write_api(write_options=SYNCHRONOUS)
+inflxdb_client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
+write_api = inflxdb_client.write_api(write_options=SYNCHRONOUS)
 # ---------------------UNCOMMENT-----------------------
 
 
@@ -177,42 +178,34 @@ def process_temps():
         # {'bp1': 35, 'bp2': 29, 'sim0': 35, 'sim1': 34, 'exp0': 56, 'exp1': 54}
         # ---LeData---
         if fluxSending:
-        # Prep InfluxDB  data
-            # ---------------------UNCOMMENT-----------------------
-            # inflxdb_Data_To_Send = (
-            #     influxdb_client.Point(f"{measurement}-script")
-            #     .tag("MACHINE", MACHINE_TAG)
-            #     .tag("LOCATION", LOCATION)
-            #     .field("Backplane1", MDict["bp1"])
-            #     .field("Backplane2", MDict["bp2"])
-            #     .field("SASIntModule0", MDict["sim0"])
-            #     .field("SASIntModule1", MDict["sim1"])
-            #     .field("Expander0", MDict["exp0"])
-            #     .field("Expander1", MDict["exp1"])
-            #     .field("Average", MDict["avg"])
-            # )
+        # Prep InfluxDB data
+            inflxdb_Data_To_Send = (
+                influxdb_client.Point(f"{measurement}-script")
+                .tag("MACHINE", MACHINE_TAG)
+                .tag("LOCATION", LOCATION)
+                .field("Backplane1", MDict["bp1"])
+                .field("Backplane2", MDict["bp2"])
+                .field("SASIntModule0", MDict["sim0"])
+                .field("SASIntModule1", MDict["sim1"])
+                .field("Expander0", MDict["exp0"])
+                .field("Expander1", MDict["exp1"])
+                .field("Average", MDict["avg"])
+            )
 
-            # inflxdb_Datazz_To_Send.append(inflxdb_Data_To_Send)
-            # # Send data to InfluxDB
-            # write_api.write(bucket=bucket, org=org, record=inflxdb_Data_To_Send)
-            # # time.sleep(INFLX_SEPARATE_POINTS) # separate points 
-
-            # # print(f"{len(bigDict)} <--- This many entrys")
+            # Prep/append data
+            inflxdb_LeData.append(inflxdb_Data_To_Send)
+            # Send data to InfluxDB
+            write_api.write(bucket=bucket, org=org, record=inflxdb_Data_To_Send)
 
 
-            # # Clean up before another loop
-            # bigDict.clear()
-            # inflxdb_Datazz_To_Send.clear()
-            # ---------------------UNCOMMENT-----------------------
-            print("I'm sending stuff to InfluxDB")
+            # Clean up before another loop
+            inflxdb_LeData.clear()
+            print("Sending data to InfluxDB", flush=True)
 
             fluxSending = False
 
-
-            # print("----------------")
-            # return ()
         else:
-            continue
+            time.sleep(0.25)
 
 
 
