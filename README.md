@@ -2,6 +2,8 @@
 
 A set of scripts that automagically set fan speed on a MD1200 (probably MD1220 as well) based on internal temperature readings.
 
+Imported from [tea.shupogaki.org](https://tea.shupogaki.org/YuruC3/MD1200)
+
 ## PC
 
 ### Docker
